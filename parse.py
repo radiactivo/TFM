@@ -1,19 +1,24 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
 
-sys.path.append(os.path.join(dir_name, "/Users/radiactivo/Applications/nightmare"))
+import sys
+
+#sys.path.append(os.path.join(dir_name, "/Users/radiactivo/Applications/nightmare"))
 
 pc = None
 singal_code = None
-def parse_logs(log):
-	buff = buff.split()
+
+signals = ['SIGABORT', 'SIGALARM', 'SIGKILL', '']
+
+def parse_logs(buff):
 	for line in buff:
 		if 'Fatal' in line:
-			ll = line.split(' ')
+			ll = line.split()
 			signal = ll.index('signal') + 1
+			print ll[signal + 1]
 	# extract abort message then registers in the next lines
-
-
 
 if __name__=='__main__':
 	with open('log_example.txt') as fd:
-		buff = fd.read()
+		buff = fd.readlines()
 	parse_logs(buff)

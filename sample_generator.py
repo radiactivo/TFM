@@ -1,17 +1,18 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-
+from config import dir_project, dir_samples, dir_dexs, seeds
 import os, fnmatch
 from utils import *
 
-dir_project = '/Users/radiactivo/Documents/TFM/'
-dir_apks = dir_project + 'apks/'
-dir_dexs = dir_project + 'dexs/'
+
+
+#######	DEX2OAT SAMPLE EXTRACTOR
 log = dir_project + 'logs/sample_generator_log'
 
 f = open(log, 'w')
 sample_num = 0
-apks = find('*.apk', dir_apks)
+apks = find('*.apk', dir_samples)
+
 for apk in apks:
 	apk_folder = apk[0:len(apk) - 4] + '/'
 	os.system('unzip ' + apk + ' -d ' + apk_folder)
@@ -24,3 +25,12 @@ for apk in apks:
 			sample_num +=1
 			f.write(dex_file + ';' + 'sample_' + str(sample_num))
 	os.system('sudo rm -rf ' + apk_folder)
+
+#FUZZED GENERATOR
+dexs = find('*.dex', dir_dexs)
+fuz_num = 0
+for dex in dexs:
+	for seed in seeds:
+		os.system('radamsa -s ' + str(seed) + ' ' + dir_dexs + 'sample_' + dex[44:] + ' > ' + dir_mutated + 'fuzzed_' + str(fuz_num) + '.dex')
+		fuz_num += 1
+		print fuz_num
