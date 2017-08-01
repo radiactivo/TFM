@@ -1,31 +1,24 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-from config import dir_project, dir_samples, dir_mutated, seeds
-from utils import find
+from config import dir_project, dir_samples, dir_mutated, seeds, _pre_command
+from utils import find, run_subproc
 from time import sleep
 import os
 
-def main():
+def main(serial):
 
-	files = find('*.vcf', dir_samples)
-
-	fuz_num = 0
-	for file in files:
-		for seed in seeds:
-			os.system('radamsa -s ' + str(seed) + ' ' + dir_samples + file.split('/')[-1] + ' > ' + dir_mutated + 'fuzzed_' + str(fuz_num) + '.vcf')
-			fuz_num += 1
-
+	_pre_command = '{} {}'.format(_pre_command, serial)
 	fuzs = find('*vcf', dir_mutated)
 
 	for fuz in fuzs:
-		os.system('adb push ' + fuz + ' /sdcard/vcfs/' + fuz.split('/')[-1])
-
-	for fuz in fuzs:
-		os.system('adb shell am start -t "text/x-vcard" -d "file:///sdcard/vcfs/' + fuz.split('/')[-1] + '" -a android.intent.action.VIEW com.android.contacts')
-		os.system('adb shell input keyevent 61')
-		os.system('adb shell input keyevent 23')
+		filename = fuz.split('/')[-1]
+		os.system('{} push {} /sdcard/{}'.format(_pre_command, fuz, filename))
+		os.system('{} shell am start -t "text/x-vcard" -d "file:///sdcard/vcfs/{}" -a android.intent.action.VIEW com.android.contacts'.format(_pre_command, filename))
+		os.system('{} shell input keyevent 61'.format(_pre_command))
+		os.system('{} shell input keyevent 23'.format(_pre_command))
 		sleep(2)
+		run_subproc('{} shell rm /sdcard/{}'.format(_pre_command, filename))
 
 if __name__=='__main__'
 	main()

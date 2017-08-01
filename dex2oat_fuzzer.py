@@ -26,7 +26,7 @@ def main(serial):
 		#LOG TAG MESSAGE WITH INFO SAMPLE
 		cmd = '{} shell dex2oat --dex-file=/sdcard/{}  --oat-file=/sdcard/gen.oat'.format(_pre_cmd, filename)
 		run_subproc(cmd)
-		os.system('{} rm /sdcard/{} /sdcard/gen.oat'.format(_pre_cmd, filename))
+		os.system('{} shell rm /sdcard/{} /sdcard/gen.oat'.format(_pre_cmd, filename))
 
 		count += 1
 

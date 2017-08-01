@@ -1,32 +1,34 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-from config import devices, _emulator_cmd, serials, _adb_dev_list
+from config import devices, _emulator_cmd, serials, _adb_dev_list, _root_adb_cmd
 import argparse
 import subprocess
 from sys import exit
 from dex2oat_fuzzer import main as dex2oat_main
+from utils import run_subproc
 
 
 def main(campaign, serial):
-	answer = raw_input('Start? [y/n]')
-
+	answer = raw_input('Start as root? [y/n]')
 	if answer == 'y':
-		if campaign == 'dex2oat':
-			dex2oat_main(serial)
-		elif campaign == 'searchactivity':
-			#searchactivity_main(serial)
-			pass
-		elif campaign == 'contact':
-			#contact_main()
-			pass
+		run_subproc(_root_adb_cmd)
+		
+	if campaign == 'dex2oat':
+		dex2oat_main(serial)
+	elif campaign == 'searchactivity':
+		#searchactivity_main(serial)
+		pass
+	elif campaign == 'contact':
+		#contact_main()
+		pass
 
 def usage():
 	print 'Usage: \n\t {}'.format('python brain.py --fuz <Campaign type> --device <Serial device>')
 	exit(0)
 
 if __name__ == '__main__':
-
+ 
 	parser = argparse.ArgumentParser()
 	parser.add_argument('-f', '--fuzz', help='Campaign type')
 	parser.add_argument('-d' ,'--device', help='Serial number of the android device')

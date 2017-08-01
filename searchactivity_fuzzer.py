@@ -62,7 +62,7 @@ def check_command_conditions(stdout_value, stderr_value, command):
 def shellquote(s):
     return "'" + s.replace("'", "'\\''") + "'"
 
-files = find('*','/Users/radiactivo/Applications/fuzzdb/attack')
+files = find('*', dir_fuzzdb_atack)
 for file in files:
 
 	with open(file, 'r') as f:
