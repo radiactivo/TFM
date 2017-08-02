@@ -6,11 +6,10 @@
 
 import os
 import subprocess
+from config import dir_api
 
 apps = []
-api_dir = '/Users/radiactivo/Applications/googleplay-api/'
-
-proc = subprocess.Popen(['python', api_dir + 'search.py', 'word'], stdout=subprocess.PIPE)
+proc = subprocess.Popen(['python', '{}search.py'.format(dir_api), 'word'], stdout=subprocess.PIPE)
 
 for line in iter(proc.stdout.readline,''):
    list1 = line.rstrip().split(';')
@@ -19,6 +18,6 @@ for line in iter(proc.stdout.readline,''):
 print apps
 
 for app in apps:
-	os.system('python ' + api_dir + 'download.py ' + app)
+	os.system('python {} download.py {}'.format(dir_api, app))
 
 os.system('mv *.apk ~/Documents/TFM/apks/')

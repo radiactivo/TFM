@@ -39,3 +39,9 @@ def extract_random_strings():
         with open(file, 'r') as fd:
             str_list.append(fd.readlines())
     return str_list
+
+def read_json(filename):
+    pass
+
+if __name__=='__main__':
+    read_json()

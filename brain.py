@@ -10,10 +10,12 @@ from utils import run_subproc
 
 
 def main(campaign, serial):
+	
 	answer = raw_input('Start as root? [y/n]')
+	_pre_command = '{} {}'.format(_pre_command, serial)
+
 	if answer == 'y':
-		run_subproc(_root_adb_cmd)
-		
+		run_subproc('{} root'.format(_pre_command))
 	if campaign == 'dex2oat':
 		dex2oat_main(serial)
 	elif campaign == 'searchactivity':
@@ -37,14 +39,17 @@ if __name__ == '__main__':
 	if (args.fuzz == None or args.device == None):
 		usage()
 
-	if args.device in devices:
-
-		adb_process = subprocess.Popen([_adb_dev_list], shell=True, stdout=subprocess.PIPE)
-		output = adb_process.stdout.readlines()
-
-		print output
-		r = subprocess.Popen([_emulator_cmd + args.device], shell=True)
+	if args.device not in devices:
+		usage()
 
 	serial = serials[0]
+	adb_process = subprocess.Popen([_adb_dev_list], shell=True, stdout=subprocess.PIPE)
+	output = adb_process.stdout.readlines()
+	if serial in output[1]:
+		serial = serials[1]
+
+	print serial
+	r = subprocess.Popen([_emulator_cmd + args.device], shell=True, stdout=None, stderr=None)
+
 	main(args.fuzz, serial)
 	r.kill()
