@@ -11,7 +11,7 @@ singal_code = None
 
 signals = ['SIGABORT', 'SIGALARM', 'SIGKILL', '']
 
-def parse_logs(buff):
+def parse_logs(filename):
 
 	dic = {
 		'signal': None,
@@ -40,35 +40,34 @@ def parse_logs(buff):
 		'backtrace':[],
 		'tombstone':None,
 	}
-	
-	for line in buff:
+	 
+	with open(filename, 'r') as fd:
+		for line in fd:
+			#Extract signal_code and signal
+			if 'Fatal' in line:	
+				ll = line.split()
+				signal_code_index 	= ll.index('signal') + 1
+				signal_index 		= signal_code_index + 1
+				dic['signal_code'] = ll[signal_code_index]
 
-		#Extract signal_code and signal
-		if 'Fatal' in line:	
-			ll = line.split()
-			signal_code_index 	= ll.index('signal') + 1
-			signal_index 		= signal_code_index + 1
-			dic['signal_code'] = ll[signal_code_index]
+				for sig in signals:
+					if sig in ll[signal_index]:
+						dic['signal'] = sig
+						break
 
-			for sig in signals:
-				if sig in ll[signal_index]:
-					dic['signal'] = sig
-					break
+			for line in fd:
+				if '>>>' in element and '<<<' in element:
+					ll = element.split()
+					dic['program_name'] = ll[ll.index('>>>') + 1]
+					
+				index = buff.index(element)
 
-		index = buff.index(line)
+				for elem in buff[index + 1:]:
 
-		for element in buff[index:]:
-			if '>>>' in element and '<<<' in element:
-				ll = element.split()
-				dic['program_name'] = ll[ll.index('>>>') + 1]
-				break
 
-		index = buff.index(line)
-		
+
 		pdb.set_trace()
 	# extract abort message then registers in the next lines
 
 if __name__=='__main__':
-	with open('log_example.txt') as fd:
-		buff = fd.readlines()
-	parse_logs(buff)
+	parse_logs('log_example.txt')
