@@ -32,8 +32,6 @@ def extract_info(md5_sample, filename, samples_dict):
 			print 'Original seed not found'
 	return
 
-def add_crash():
-	pass
 def parse_logs(filename):
 
 	log_results = {}
@@ -105,7 +103,7 @@ def parse_logs(filename):
 										for reg in regis:
 											dic['registers'][reg] = ll[ll.index(reg) + 1]
 									elif 'xcs' in line and 'xes' in line and 'xfs' in line and 'xss' in line:
-										regis = ['xcs', 'xes', 'xfs', 'xss']
+										regis = ['xcs', 'xds', 'xes', 'xfs', 'xss']
 										ll = line.split()
 										for reg in regis:
 											dic['registers'][reg] = ll[ll.index(reg) + 1]
@@ -119,6 +117,17 @@ def parse_logs(filename):
 											if 'DEBUG' in line and ':     #' in line:
 												dic['backtrace'].append(line.split(':     ')[-1])
 											else:
+												index = dic['backtrace'][0].split().index('pc') + 1
+												dic['pc'] = dic['backtrace'][0].split()[index]
+
+												for line in fd:
+													if 'BootReceiver: Copying /data/tombstones/tombstone' in line:
+														l = line.split()
+														for e in l:
+															if 'tombstone' in e:
+																dic['tombstone'] = e
+																break
+														break
 												log_results[count] = dic
 												count += 1
 												break
@@ -126,6 +135,10 @@ def parse_logs(filename):
 								break
 						break
 
+# from parse import parse_logs
+# import pprint
+# res = parse_logs('/Users/radiactivo/Documents/TFM/logs/log_nougat_dex_simple_7.1')
+# pprint.pprint(res, width=1)
 
 					#index = buff.index(line)
 
