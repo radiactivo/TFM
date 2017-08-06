@@ -20,7 +20,7 @@ def run_subproc(cmd):
     r.wait()
 
 def flush_log(device_id):
-    cmd = 'adb -s ' + (str)(device_id) + ' logcat -c'
+    cmd = 'adb -s {} logcat -c'.format((str)(device_id))
     r = subprocess.Popen([cmd], shell=True)
     r.wait()
 
@@ -55,7 +55,7 @@ def import_vcf(filename):
         buf = f.read()
     return vobject.readOne( buf )
 
-def extract_random_strings():
+def extract_fuzzdb_strings():
     str_list = []
     files = find('*.txt', dir_fuzzdb_atack)
     for filename in files:

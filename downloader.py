@@ -18,6 +18,6 @@ for line in iter(proc.stdout.readline,''):
 print apps
 
 for app in apps:
-	os.system('python {} download.py {}'.format(dir_api, app))
+	os.system('python {}download.py {}'.format(dir_api, app))
 
 os.system('mv *.apk ~/Documents/TFM/apks/')

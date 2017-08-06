@@ -73,7 +73,7 @@ for file in files:
 		if 'ping' in line:
 			print '[*] AVOIDING PING[*]'
 			continue
-		command = _command + ('"%s"'%shellquote(line))
+		command = shellquote('{} "{}"'.format(command, line))
 		run_subproc('adb shell log -p W -t @@SEARCHBOX_FUZZ@@ Starting subfuzz with command: ' + command)
 		conditions = execute(command)
 

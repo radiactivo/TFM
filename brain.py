@@ -1,13 +1,13 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-from config import devices, _emulator_cmd, serials, _adb_dev_list, _root_adb_cmd
+from config import devices, _emulator_cmd, serials, _adb_dev_list
 import argparse
 import subprocess
 from sys import exit
 from dex2oat_fuzzer import main as dex2oat_main
+from contact_fuzzer import main as contact_main
 from utils import run_subproc
-
 
 def main(campaign, serial):
 	
@@ -19,14 +19,12 @@ def main(campaign, serial):
 	if campaign == 'dex2oat':
 		dex2oat_main(serial)
 	elif campaign == 'searchactivity':
-		#searchactivity_main(serial)
-		pass
+		searchactivity_main(serial)
 	elif campaign == 'contact':
-		#contact_main()
-		pass
+		contact_main(serial)
 
 def usage():
-	print 'Usage: \n\t {}'.format('python brain.py --fuz <Campaign type> --device <Serial device>')
+	print 'usage: \n\t {}'.format('python brain.py --fuz <Campaign type> --device <Serial device>')
 	exit(0)
 
 if __name__ == '__main__':
@@ -36,11 +34,8 @@ if __name__ == '__main__':
 	parser.add_argument('-d' ,'--device', help='Serial number of the android device')
 	args = parser.parse_args()
 
-	if (args.fuzz == None or args.device == None):
-		usage()
-
-	if args.device not in devices:
-		usage()
+	if (args.fuzz == None or args.device == None): usage()
+	if args.device not in devices: usage()
 
 	serial = serials[0]
 	adb_process = subprocess.Popen([_adb_dev_list], shell=True, stdout=subprocess.PIPE)
@@ -49,7 +44,7 @@ if __name__ == '__main__':
 		serial = serials[1]
 
 	print serial
-	r = subprocess.Popen([_emulator_cmd + args.device], shell=True, stdout=None, stderr=None)
+	r = subprocess.Popen(['{}{}'.format(_emulator_cmd, args.device)], shell=True, stdout=None, stderr=None)
 
 	main(args.fuzz, serial)
 	r.kill()

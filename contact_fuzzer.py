@@ -9,7 +9,7 @@ import os
 def main(serial):
 
 	_pre_command = '{} {}'.format(_pre_command, serial)
-	fuzs = find('*vcf', dir_mutated)
+	fuzs = find('*.vcf', dir_mutated)
 
 	for fuz in fuzs:
 		filename = fuz.split('/')[-1]
@@ -20,5 +20,5 @@ def main(serial):
 		sleep(2)
 		run_subproc('{} shell rm /sdcard/{}'.format(_pre_command, filename))
 
-if __name__=='__main__'
+if __name__=='__main__':
 	main()
