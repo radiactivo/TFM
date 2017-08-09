@@ -12,8 +12,13 @@ import vobject
 import json
 import hashlib
 import pickle
+import pdb
+from sys import exit
+from time import time
+from datetime import datetime
+from tzlocal import get_localzone
 
-from config import dir_project, dir_fuzzdb_atack
+from config import dir_project, dir_fuzzdb_attack
 
 def run_subproc(cmd):
     r = subprocess.Popen([cmd], shell=True)
@@ -41,6 +46,13 @@ def load_dict(filename):
         dictionary = pickle.loads(handle.read())
     return dictionary
 
+def generate_timestamp():
+    return int(time())
+
+def timestamp_to_datetime(timestamp):
+    local_tz = get_localzone()
+    return local_tz.localize(datetime.fromtimestamp(timestamp))
+
 def md5(fname):
     hash_md5 = hashlib.md5()
     with open(fname, "rb") as f:
@@ -57,10 +69,13 @@ def import_vcf(filename):
 
 def extract_fuzzdb_strings():
     str_list = []
-    files = find('*.txt', dir_fuzzdb_atack)
+    files = find('*.txt', dir_fuzzdb_attack)
     for filename in files:
         with open(filename, 'r+') as fd:
-            str_list.append(fd.readlines())
+            list_to_append = fd.readlines()
+        list_to_append = [x.strip() for x in list_to_append]
+        for line in list_to_append:
+            str_list.append( line )
     return str_list
 
 def add_hash_seed(sample_dic, original_filename, fuzzed_filename, seed):

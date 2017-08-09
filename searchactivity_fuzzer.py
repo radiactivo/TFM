@@ -62,21 +62,27 @@ def check_command_conditions(stdout_value, stderr_value, command):
 def shellquote(s):
     return "'" + s.replace("'", "'\\''") + "'"
 
-files = find('*', dir_fuzzdb_atack)
-for file in files:
+def main(serial, log_fd):
+	
+	######
+	#NO USAGE OF SERIAL OR log_fd
+	#######
 
-	with open(file, 'r') as f:
-		out = f.read()
-	lines = out.split('\n')
+	files = find('*', dir_fuzzdb_atack)
+	for file in files:
 
-	for line in lines:
-		if 'ping' in line:
-			print '[*] AVOIDING PING[*]'
-			continue
-		command = shellquote('{} "{}"'.format(command, line))
-		run_subproc('adb shell log -p W -t @@SEARCHBOX_FUZZ@@ Starting subfuzz with command: ' + command)
-		conditions = execute(command)
+		with open(file, 'r') as f:
+			out = f.read()
+		lines = out.split('\n')
 
-		check_command_conditions(conditions[0], conditions[1], conditions[2])
+		for line in lines:
+			if 'ping' in line:
+				print '[*] AVOIDING PING[*]'
+				continue
+			command = shellquote('{} "{}"'.format(command, line))
+			run_subproc('adb shell log -p W -t @@SEARCHBOX_FUZZ@@ Starting subfuzz with command: ' + command)
+			conditions = execute(command)
 
-#adb shell am start -D -n "com.google.android.googlequicksearchbox/.SearchActivity" -a "android.intent.action.WEB_SEARCH" -c "android.intent.category.DEFAULT" -e "query" $(python -c 'print "a"*3000')
+			check_command_conditions(conditions[0], conditions[1], conditions[2])
+
+	#adb shell am start -D -n "com.google.android.googlequicksearchbox/.SearchActivity" -a "android.intent.action.WEB_SEARCH" -c "android.intent.category.DEFAULT" -e "query" $(python -c 'print "a"*3000')

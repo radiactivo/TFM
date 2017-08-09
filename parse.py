@@ -9,7 +9,7 @@ import pdb
 pc = None
 singal_code = None
 
-signals = ['SIGABORT', 'SIGALARM', 'SIGKILL']
+signals = ['SIGABORT', 'SIGALARM', 'SIGKILL', 'SIGSEV']
 
 def extract_info(md5_sample, filename, samples_dict):
 	md5_original_sample = None

@@ -1,52 +1,49 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-from config import dir_project, dir_samples, dir_dexs, seeds, filename_dictionary_samples, dir_mutated
+from config import dir_project, dir_samples, dir_dexs, seeds, filename_dictionary_samples_dat, filename_dictionary_samples_json, dir_mutated
 import os, fnmatch
 from utils import *
+import vobject
 import pdb
 
-def dex2oat_sample_generator():
-
-	#######	DEX2OAT SAMPLE EXTRACTOR
-	log = dir_project + 'logs/sample_generator_log'
-	samples_dic =  load_dict(filename_dictionary_samples)
-
-	f = open(log, 'w')
-
-	# #DEX EXTRACTOR
+def extract_dex():
+	######	DEX2OAT SAMPLE EXTRACTOR
 	sample_num = 0
 	apks = find('*.apk', dir_samples)
 
 	for apk in apks:
 		apk_folder = apk[0:len(apk) - 4] + '/'
-		os.system('unzip ' + apk + ' -d ' + apk_folder)
+		os.system('unzip {} -d {}'.format(apk, apk_folder))
 		dex_files = find('*.dex', apk_folder)
 		if len(dex_files) == 0:
-			print '[-] No dex class on: ' + apk_folder
+			print '[-] No dex class on: {}'.format(apk_folder)
 		else:
 			for dex_file in dex_files:
-				os.system('mv ' + dex_file + ' ' + dir_dexs + 'sample_' + str(sample_num) + '.dex')
+				os.system('mv {} {}sample_{}.dex'.format(dex_file, dir_samples, str(sample_num)))
 				sample_num +=1
-				f.write( dex_file + ';' + 'sample_' + str(sample_num) )
 		os.system('sudo rm -rf ' + apk_folder)
 
+def dex2oat_sample_generator():
+	samples_dic =  load_dict(filename_dictionary_samples_dat)
+
 	#FUZZED GENERATOR
-	dexs = find('*.dex', dir_dexs)
+	dexs = find('*.dex', dir_samples)
 	fuz_num = 0
 	for dex in dexs:
-		fuzzed_filename = '{}fuzzed_{}.dex'.format( dir_mutated, str(fuz_num) )
-		os.system( 'radamsa -s {} {} >> {}'.format( str(seed), dex, fuzzed_filename) )
-		add_hash_seed( samples_dic, dex, fuzzed_filename, str(seed) )
-		fuz_num += 1
-		print fuz_num
+		for seed in seeds[180:200]:
+			fuzzed_filename = '{}fuzzed_{}.dex'.format( dir_mutated, str(fuz_num) )
+			os.system( 'radamsa -s {} {} >> {}'.format( str(seed), dex, fuzzed_filename) )
+			add_hash_seed( samples_dic, dex, fuzzed_filename, str(seed) )
+			fuz_num += 1
+			print fuz_num
 
-	dump_dict(samples_dic, filename_dictionary_samples)
-	dump_json(samples_dic, filename_dictionary_samples)
-	f.close()
+	dump_dict(samples_dic, filename_dictionary_samples_dat)
+	dump_json(samples_dic, filename_dictionary_samples_json)
+
 
 def contact_sample_generator():
-	samples_dic =  load_dict(filename_dictionary_samples)
+	samples_dic =  load_dict(filename_dictionary_samples_dat)
 
 	files = find('*.vcf', dir_samples)
 	fuz_num = 0
@@ -57,8 +54,8 @@ def contact_sample_generator():
 			add_hash_seed( sample_dic, file, fuzzed_filename, str(seed) )
 			fuz_num += 1
 
-	dump_dict(samples_dic, filename_dictionary_samples)
-	dump_json(samples_dic, filename_dictionary_samples)
+	dump_dict(samples_dic, filename_dictionary_samples_dat)
+	dump_json(samples_dic, filename_dictionary_samples_json)
 
 def vcard_generate():
 	j = vobject.vCard()
@@ -105,34 +102,73 @@ def extract_vcf_from_sample(sample):
 			gen_sample = '{}sample_{}.vcf'.format(dir_samples, str(sample_counter))
 			with open(gen_sample, 'a') as fd:
 				fd.writelines(buff[previous_point:x + 1])
+
 			previous_point = x + 1
 			sample_counter += 1
 
-def contact_sample_smart_generator():
-	samples_dic =  load_dict(filename_dictionary_samples)
+def contact_smart_generator():
+	samples_dic =  load_dict(filename_dictionary_samples_dat)
 
 	files = find('*.vcf', dir_samples)
 	fuzzdb_strings = extract_fuzzdb_strings()
 
-	i = 0
 	fuzzed_counter = 0
+	count = 0
 	for file in files:
-		vCard = import_vcf(file)
-		key_list = vCard.contents.keys()
-		for key in key_list:
-			vCard.add(key).value = fuzzdb_strings[i]
-			i += 1
-			if i >= len(fuzzdb_strings): i = 0
-			fuzzed_filename = '{}fuzzed_{}.vcf'.format(dir_mutated, fuzzed_counter)
-		with open(fuzzed_filename, 'a') as fd:
-			fd.write(j.serialize())
+		with open(file, 'r') as fd:
+			buff = fd.read()
+		vCard = buff.split()
+		
+		for e in vCard:
+		    if 'BEGIN' not in e and 'VERSION' not in e and 'END' not in e:
+		            vCard[vCard.index(e)] = '{}:{}'.format(e.split(':')[0], fuzzdb_strings[count])
+		    count += 1
 
-		add_hash_seed( samples_dic, dex, fuzzed_filename, str(seed) )
+		fuzzed_filename = '{}fuzzed_{}.vcf'.format(dir_mutated, fuzzed_counter)
+		with open(fuzzed_filename, 'a') as fd:
+			for line in vCard:
+				fd.write( '{}\n'.format(line) )
+
+		add_hash_seed( samples_dic, file, fuzzed_filename, fuzzdb_strings[count] )
 		fuzzed_counter += 1
 
-	dump_dict(samples_dic, filename_dictionary_samples)
-	dump_json(samples_dic, filename_dictionary_samples)
+	dump_dict(samples_dic, filename_dictionary_samples_dat)
+	dump_json(samples_dic, filename_dictionary_samples_json)
+
+	return samples_dic
+
+def contact_binary_generator():
+	samples_dic =  load_dict(filename_dictionary_samples_dat)
+
+	files = find('*.vcf', dir_samples)
+	fuzzdb_strings = extract_fuzzdb_strings()
+
+	fuzzed_counter = 0
+	count = 0
+	for file in files:
+		with open(file, 'r') as fd:
+			buff = fd.read()
+		vCard = buff.split()
+		
+		for e in vCard:
+		    if 'BEGIN' not in e and 'VERSION' not in e and 'END' not in e:
+		            vCard[vCard.index(e)] = '{}:{}'.format(e.split(':')[0], fuzzdb_strings[count])
+		    count += 1
+
+		fuzzed_filename = '{}fuzzed_{}.vcf'.format(dir_mutated, fuzzed_counter)
+		with open(fuzzed_filename, 'wb') as fd:
+			for line in vCard:
+				fd.write( '{}\n'.format(line) )
+
+		add_hash_seed( samples_dic, file, fuzzed_filename, fuzzdb_strings[count] )
+		fuzzed_counter += 1
+
+	dump_dict(samples_dic, filename_dictionary_samples_dat)
+	dump_json(samples_dic, filename_dictionary_samples_json)
+
+	return samples_dic
 
 if __name__=='__main__':
-	contact_sample_smart_generator()
-			
+	#vcard_generate()
+	#contact_smart_generator()
+	dex2oat_sample_generator()		
