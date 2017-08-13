@@ -3,9 +3,12 @@
 
 from config import dir_project, dir_samples, dir_dexs, seeds, filename_dictionary_samples_dat, filename_dictionary_samples_json, dir_mutated
 import os, fnmatch
-from utils import *
+from utils import find, fuzz_stream, fuzz_stream_seed, load_dict, json_load, dump_dict, dump_json, add_hash_seed, extract_fuzzdb_strings
 import vobject
 import pdb
+from base64 import b64encode, b64decode
+import subprocess
+from random import randint
 
 def extract_dex():
 	######	DEX2OAT SAMPLE EXTRACTOR
@@ -138,37 +141,71 @@ def contact_smart_generator():
 	return samples_dic
 
 def contact_binary_generator():
-	samples_dic =  load_dict(filename_dictionary_samples_dat)
+	samples_dic =  load_dict( filename_dictionary_samples_dat )
 
-	files = find('*.vcf', dir_samples)
+	files = find( '*.vcf', dir_samples )
 	fuzzdb_strings = extract_fuzzdb_strings()
 
 	fuzzed_counter = 0
 	count = 0
 	for file in files:
-		with open(file, 'r') as fd:
+		with open( file, 'r' ) as fd:
 			buff = fd.read()
 		vCard = buff.split()
 		
 		for e in vCard:
-		    if 'BEGIN' not in e and 'VERSION' not in e and 'END' not in e:
-		            vCard[vCard.index(e)] = '{}:{}'.format(e.split(':')[0], fuzzdb_strings[count])
-		    count += 1
+		    if 'BEGIN' not in e and 'VERSION' not in e and 'END' not in e and 'PHOTO' not in e:
+		        vCard[vCard.index(e)] = '{}:{}'.format( e.split(':')[0], fuzzdb_strings[count] )
+		    	count += 1
+		    elif 'PHOTO' in e:
+		    	raw_photo = b64decode( e.split(':')[-1] )
+		    	r = subprocess.Popen( ['radamsa'], shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE )
+		    	raw_fuzzed_photo = r.communicate( raw_photo )[0]
+		    	vCard[vCard.index(e)] = '{}:{}'.format( e.split(':')[0], b64encode( raw_fuzzed_photo ))
 
 		fuzzed_filename = '{}fuzzed_{}.vcf'.format(dir_mutated, fuzzed_counter)
-		with open(fuzzed_filename, 'wb') as fd:
+		with open( fuzzed_filename, 'wb' ) as fd:
 			for line in vCard:
-				fd.write( '{}\n'.format(line) )
+				fd.write( '{}\n'.format( line ))
 
 		add_hash_seed( samples_dic, file, fuzzed_filename, fuzzdb_strings[count] )
 		fuzzed_counter += 1
 
-	dump_dict(samples_dic, filename_dictionary_samples_dat)
-	dump_json(samples_dic, filename_dictionary_samples_json)
+	dump_dict( samples_dic, filename_dictionary_samples_dat )
+	dump_json( samples_dic, filename_dictionary_samples_json )
 
 	return samples_dic
 
+def contact_fuzzdb_generator():
+	with open( 'vcard.vcf', 'r' ) as fd:
+		buff = fd.read()
+	vCard = buff.split()
+	fuzzdb_strings = extract_fuzzdb_strings()
+
+	with open( 'images.txt', 'r') as fd:
+		imgs = fd.read().split('\n')
+
+	card_counter = 0
+	i=0
+	while i < len(fuzzdb_strings):
+		j=2
+		while j < len(vCard) - 1:
+			if 'PHOTO' not in vCard[j]:
+				vCard[j] = '{}:{}'.format( vCard[j].split(':')[0],  fuzz_stream( fuzzdb_strings[i] ))
+				i+=1
+			else:
+				vCard[j] = '{}:{}'.format( vCard[j],  b64encode( fuzz_stream( b64decode( imgs[randint(0,len(imgs) -1 )] ))))
+			j+=1
+			if i == len(fuzzdb_strings) - 1: break
+
+		with open('{}fuzzed{}.vcf'.format(dir_mutated, card_counter), 'a') as f:
+			for line in vCard:
+				f.write('{}\n'.format(line))
+		card_counter += 1
+			
+
 if __name__=='__main__':
+	contact_fuzzdb_generator()
 	#vcard_generate()
 	#contact_smart_generator()
-	dex2oat_sample_generator()		
+	#dex2oat_sample_generator()		

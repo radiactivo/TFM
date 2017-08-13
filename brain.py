@@ -7,36 +7,46 @@ import subprocess
 from sys import exit
 from dex2oat_fuzzer import main as dex2oat_main
 from contact_fuzzer import main as contact_main
-from utils import run_subproc, generate_timestamp
+from searchactivity_fuzzer import main as quicksearchbox_main
+from searchactivity_fuzzer import main_fuzzed as quicksearchbox_main_fuzz
+from utils import run_subproc, run_subprocess,generate_timestamp
 import os
 
 def main(campaign, serial, device):
 	command = '{} {}'.format('adb -s', serial)
 	timestamp = str(generate_timestamp())
-	log_dir = '{}/{}/{}/{}.dat'.format(dir_logs, device, campaign, timestamp)
-	log_adb = '{}/{}/{}/{}.log'.format(dir_logs, device, campaign, timestamp)
+	log_dir = '{}{}/{}/{}.dat'.format(dir_logs, device, campaign, timestamp)
+	log_adb = '{}{}/{}/{}.log'.format(dir_logs, device, campaign, timestamp)
 
-	answer = raw_input('Start as root? [y/n]')
-	if answer == 'y': run_subproc('{} root'.format(command))
-	
+	answer = raw_input('Start?')
+
+	run_subproc('{} root'.format(command))
 	cmd_logcat = '{} logcat >> {}'.format(command, log_adb)
-	log_sbp = subprocess.Popen([cmd_logcat], shell=True)
+	log_sbp = run_subprocess( cmd_logcat )
 
-	log_fd = open(log_dir, 'w')
+	log_fd = open(log_dir, 'a')
 	log_fd.write('[*] STARTING CAMPAIGN [*]\n')
 
 	if campaign == 'dex2oat_simple':
 		dex2oat_main(serial, log_fd)
 	elif campaign == 'dex2oat_smart':
 		dex2oat_main(serial, log_fd)
-	elif campaign == 'searchactivity':
-		searchactivity_main(serial, log_fd)
+	elif campaign == 'quicksearchbox':
+		quicksearchbox_main(serial, log_fd)
+	elif campaign == 'quicksearchbox_rand':
+		quicksearchbox_main_fuzz(serial, log_fd)
 	elif campaign == 'contact':
-		contact_main(serial, log_fd)
+		contact_main(serial, log_fd, device, cmd_logcat, log_sbp)
+	elif campaign == 'contact_gen':
+		contact_main(serial, log_fd, device, cmd_logcat, log_sbp)
 
 	log_fd.write('[*] FINISH CAMPAIGN [*]\n\n')
 	log_fd.close()
-	log_sbp.kill()
+
+	try:
+		log_sbp.kill()
+	except:
+		pass
 
 def usage():
 	print 'usage: \n\t {}'.format('python brain.py --fuz <Campaign type> --device <Serial device>')

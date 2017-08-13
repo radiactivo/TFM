@@ -1,13 +1,11 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-from utils import find
+from utils import find, update_buffer
 from config import dir_samples, dir_mutated
-import hashlib
-import argparse
-import hashlib
-import zlib
-import struct
+from hashlib import sha1
+from zlib import adler32
+from struct import pack
 from sys import exit
 
 _MAGIC = '6465780a30333500'
@@ -17,6 +15,9 @@ _ENDIAN_TAG = '78563412'
 _hMAGIC = 'dex\n035\x00'
 _hHEADER_SIZE = 'p\x00\x00\x00'
 _hENDIAN_TAG = 'xV4\x12'
+
+# from dex_header import fix_header
+# fix_header('/Users/radiactivo/Documents/TFM/scripts/fuzzed_1.dex')
 
 def update_checksum(filename, checksum):
 	with open(filename, 'r+') as f:  
@@ -28,7 +29,7 @@ def update_signature(filename, signature):
 	with open(filename, 'r+') as f:
 	    f.seek(12)
 	    f.write( signature )
-	return m.hexdigest()
+	return signature
 
 def update_file_size(filename, file_size):
 	with open(filename, 'r+') as f:
@@ -44,20 +45,20 @@ def update_header_size(filename):
 		f.seek(36)
 		f.write(_hHEADER_SIZE)
 
-def update_endian_tag(buff):
+def update_endian_tag(filename):
 	with open(filename, 'r+') as f:
 		f.seek(40)
 		f.write(_hENDIAN_TAG)
 
 def check_checksum(buff, current_checksum):
-	raw_checksum = zlib.adler32( buff[12:] )
-	checksum = struct.pack('<I', raw_checksum & 0xffffffff)
+	raw_checksum = adler32( buff[12:] )
+	checksum = pack('<I', raw_checksum & 0xffffffff)
 	if checksum.encode('hex') == current_checksum:
 		return None
 	return checksum
 		
 def check_signature(buff, current_signature):
-	m = hashlib.sha1()
+	m = sha1()
 	m.update( buff[32:] )
 	signature = m.digest()
 	if signature.encode('hex') == current_signature:
@@ -66,23 +67,15 @@ def check_signature(buff, current_signature):
 
 def check_file_size(buff, current_file_size):
 	size = len(buff)
-	file_size = struct.pack('<I', size & 0xffffffff) 
+	file_size = pack('<I', size & 0xffffffff) 
 	if file_size.encode('hex') == current_file_size:
 		return None
 	return file_size
 
-def update_buffer(index, size, wbuff, rbuff):
-	l = list(wbuff)
-	for i in range(0,size):
-		l[index + i] = rbuff[i]
-	wbuff = ''.join(l)
-	return wbuff
-
-files = find('*.dex', dir_mutated)
-
-for file in files:
-	with open(file, 'rb') as fd:
-		byte_stream = fd.read()
+def fix_header(filename):
+	
+	with open(filename, 'rb') as fd:
+			byte_stream = fd.read()
 
 	dex_header = byte_stream[0:112]
 
@@ -93,32 +86,63 @@ for file in files:
 	header_size = dex_header[36:40].encode('hex')
 	endian_tag = dex_header[40:44].encode('hex')
 
-	if magic != _MAGIC:
-	 	print '[-] NOT SAME MAGIC HEADER IN {} [-]'.format(file.split('/')[-1])
-	 	update_magic(file)
-	
-	if header_size != _HEADER_SIZE:
-		print '[-] NOT SAME SIZE HEADER IN {} [-]'.format(file.split('/')[-1])
-		update_header_size(file)
+	changes = False;
 
 	if endian_tag != _ENDIAN_TAG:
-		print '[-] NOT SAME ENDIAN TAG IN {} [-]'.format(file.split('/')[-1])
-		update_endian_tag(file)
+		print '[-] NOT SAME ENDIAN TAG IN {} [-]'.format(filename.split('/')[-1])
+		update_endian_tag(filename)
+		dex_header = update_buffer(40, dex_header, _hENDIAN_TAG)
+		changes = True
+
+	if header_size != _HEADER_SIZE:
+		print '[-] NOT SAME SIZE HEADER IN {} [-]'.format(filename.split('/')[-1])
+		update_header_size(filename)
+		dex_header = update_buffer(36, dex_header, _hHEADER_SIZE)
+		changes = True
+
+	if magic != _MAGIC:
+	 	print '[-] NOT SAME MAGIC HEADER IN {} [-]'.format(filename.split('/')[-1])
+	 	update_magic(filename)
+		dex_header = update_buffer(0, dex_header, _hMAGIC)
+		changes = True
 
 	result = None	
-	result = check_file_size(byte_stream, file_size)
+	result = check_file_size( byte_stream, file_size )
+	
 	if result != None:
-		print '[-] INVALID FILE SIZE IN {} [-]'.format(file.split('/')[-1])
-			#update_file(file, result)
+		print '[-] INVALID FILE SIZE IN {} [-]'.format(filename.split('/')[-1])
+		update_file_size(filename, result)
+		dex_header = update_buffer(32, dex_header, result)
+		changes = True
+
+	if changes: 
+		byte_stream = update_buffer(0, byte_stream, dex_header)
+		changes = False
 
 	result = None
-	result = check_signature(byte_stream, signature)
-		if result != None:
-			print '[-] INVALID SIGNATURE IN {} [-]'.format(file.split('/')[-1])
-			update_signature(file, result)
+	result = check_signature( byte_stream, signature )
+	if result != None:
+		print '[-] INVALID SIGNATURE IN {} [-]'.format(filename.split('/')[-1])
+		update_signature(filename, result)
+		dex_header = update_buffer(12, dex_header, result)
+		if not changes: changes = True
+
+	if changes: 
+		byte_stream = update_buffer(0, byte_stream, dex_header)
+		changes = False
 
 	result = None
 	result = check_checksum( byte_stream, checksum )
-		if result != None:
-			print '[-] INVALID CHECKSUM IN {} [-]'.format(file.split('/')[-1])
-			update_checksum(file, result)
+	if result != None:
+		print '[-] INVALID CHECKSUM IN {} [-]'.format(filename.split('/')[-1])
+		update_checksum(filename, result)
+		dex_header = update_buffer(8, dex_header, result)
+
+def main():
+	files = find('*.dex', dir_mutated)
+
+	for file in files:
+		fix_header(file)
+
+if __name__=='__main__':
+	main()

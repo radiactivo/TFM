@@ -17,12 +17,17 @@ from sys import exit
 from time import time
 from datetime import datetime
 from tzlocal import get_localzone
+import StringIO
 
 from config import dir_project, dir_fuzzdb_attack
 
 def run_subproc(cmd):
     r = subprocess.Popen([cmd], shell=True)
     r.wait()
+    
+def run_subprocess(cmd):
+    r = subprocess.Popen([cmd], shell=True)
+    return r
 
 def flush_log(device_id):
     cmd = 'adb -s {} logcat -c'.format((str)(device_id))
@@ -36,6 +41,32 @@ def find(pattern, path):
             if fnmatch.fnmatch(name, pattern):
                 result.append(os.path.join(root, name))
     return result
+
+def update_buffer(index, wbuff, rbuff):
+    a = StringIO.StringIO(wbuff)
+    a.seek(index)
+    a.write(rbuff)
+    buff = a.getvalue()
+    a.close()
+    return buff
+
+def fuzz_stream( byte_stream_sample ):
+    r = subprocess.Popen( ['radamsa'], shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE )
+    ans = r.communicate( byte_stream_sample )[0]
+    try:
+        r.kill()
+    except:
+        pass
+    return ans
+
+def fuzz_stream_seed( byte_stream_sample, seed ):
+    r = subprocess.Popen( ['radamsa', '-s', seed], shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE )
+    ans = r.communicate( byte_stream_sample )[0]
+    try:
+        r.kill()
+    except:
+        pass
+    return ans
 
 def dump_dict(dictionary, filename):
     with open(filename, 'wb') as handle:
